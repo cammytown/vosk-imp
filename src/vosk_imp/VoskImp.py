@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import queue
+import appdirs
 import sys
 import json
 import signal
@@ -40,8 +41,12 @@ class VoskImp:
 
         if not self.model:
             if self.model_path is None:
+                self.model = Model(lang="en-us")
+
                 #@TODO temporary:
-                self.model = Model("vosk_imp/models/vosk-model-small-en-us")
+                # model_name = "vosk-model-small-en-us"
+                # model_path = appdirs.user_data_dir("VoskImp", "VoskImp")
+                # self.model = Model(f"{model_path}/{model_name}")
             else:
                 self.model = Model(self.model_path)
 
