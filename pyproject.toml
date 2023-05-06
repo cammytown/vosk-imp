@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "vosk-imp"
+version = "0.1.0"
+description = ""
+authors = ["Cammy <cameronsteele@steelecameron.com>"]
+readme = "README.md"
+packages = [{include = "vosk_imp", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+sounddevice = "^0.4.6"
+vosk = "^0.3.45"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
