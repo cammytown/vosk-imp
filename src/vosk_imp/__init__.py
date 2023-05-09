@@ -1,1 +1,1 @@
-from .VoskImp import VoskImp
+from .vosk_imp import VoskImp
