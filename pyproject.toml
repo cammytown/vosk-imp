@@ -6,8 +6,8 @@ authors = [
 	{ name = "Cammy", email = "cameronsteele@steelecameron.com" }
 ]
 readme = "README.md"
+requires-python = ">=3.9.0,<3.11"
 dependencies = [
-	"python >=3.10,<4",
 	"sounddevice >=0.4.6",
 	"vosk >=0.3.45"
 ]
