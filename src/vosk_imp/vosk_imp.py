@@ -32,7 +32,13 @@ class VoskImp:
     def setup(self):
         # Set default args…
         if self.device is None:
-            self.device = 'pipewire'
+            # Use default device
+            #@TODO-3 better way of determining default device
+
+            # self.device = sd.default.device[0]
+            # self.device = 'pipewire'
+            self.device = 'pulse'
+            pass
 
         if self.samplerate is None:
             device_info = sd.query_devices(self.device, "input")
@@ -55,7 +61,7 @@ class VoskImp:
         self.setup()
 
         if self.filename:
-            dump_file = open(self.filename, "wb")
+            dump_file = open(self.filename, mode="wb", encoding="utf-8")
         else:
             dump_file = None
 
