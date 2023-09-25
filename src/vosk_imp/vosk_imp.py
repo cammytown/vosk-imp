@@ -11,7 +11,15 @@ import sounddevice as sd
 from vosk import Model, KaldiRecognizer
 
 class VoskImp:
+    audio_queue: queue.Queue
+    device: Optional[str] = None
+    samplerate: Optional[int] = None
     model: Optional[Model] = None
+    recognizer: Optional[KaldiRecognizer] = None
+
+    dump_filename: Optional[str] = None
+    callback = None
+    input_stream: Optional[sd.RawInputStream] = None
 
     def __init__(self,
                  device=None,
@@ -22,11 +30,12 @@ class VoskImp:
         self.device = device
         self.samplerate = samplerate
         self.model_path = model_path
-        self.filename = filename
+        self.dump_filename = filename
 
     def input_callback(self, indata, frames, time, status):
         if status:
             print(status, file=sys.stderr)
+
         self.audio_queue.put(bytes(indata))
 
     def setup(self):
@@ -56,52 +65,75 @@ class VoskImp:
             else:
                 self.model = Model(self.model_path)
 
+        if not self.recognizer:
+            self.recognizer = KaldiRecognizer(self.model, self.samplerate)
 
-    def run(self, callback = lambda text: print(text)):
+    def update(self):
+        assert self.recognizer is not None
+
+        data = self.audio_queue.get()
+
+        if data is None:
+            print("VoskImp: No data, exiting") #@TODO remove
+            return
+
+        if self.recognizer.AcceptWaveform(data):
+            result_string = self.recognizer.Result()
+            data = json.loads(result_string)
+
+            if(data["text"] == ""):
+                return
+
+            if(data["text"] == "huh"):
+                return
+
+            print(data["text"])
+
+            if self.callback is not None:
+                self.callback(data["text"])
+
+            return data["text"]
+
+        else:
+            #@REVISIT
+            pass
+
+        return None
+
+    def start(self, callback = lambda text: print(text)):
         self.setup()
 
-        if self.filename:
-            dump_file = open(self.filename, mode="wb", encoding="utf-8")
-        else:
-            dump_file = None
+        # if self.dump_filename:
+        #     dump_file = open(self.dump_filename, mode="wb", encoding="utf-8")
+        # else:
+        #     dump_file = None
 
-        with sd.RawInputStream(samplerate=self.samplerate, blocksize=8000,
-                               device=self.device, dtype="int16", channels=1,
-                               callback=self.input_callback):
-            print("#" * 80)
-            print("Press Ctrl+C to stop the recording")
-            print("#" * 80)
+        # signal.signal(signal.SIGINT, self.stop)
+        # signal.signal(signal.SIGTERM, self.stop)
 
-            recognizer = KaldiRecognizer(self.model, self.samplerate)
+        print("VoskImp: Starting input stream") #@TODO remove
 
-            signal.signal(signal.SIGINT, self.stop)
-            signal.signal(signal.SIGTERM, self.stop)
+        self.input_stream =  sd.RawInputStream(samplerate=self.samplerate,
+                                               blocksize=8000,
+                                               device=self.device,
+                                               dtype="int16",
+                                               channels=1,
+                                               callback=self.input_callback)
+        self.input_stream.start()
 
-            while True:
-                data = self.audio_queue.get()
 
-                if data is None:
-                    print("Exiting...")
-                    break
+            # while True:
+            #     data = self.update()
 
-                if recognizer.AcceptWaveform(data):
-                    result_string = recognizer.Result()
-                    data = json.loads(result_string)
-
-                    if(data["text"] == ""):
-                        continue
-
-                    if(data["text"] == "huh"):
-                        continue
-
-                    callback(data["text"])
-                else:
-                    pass
-
-                if dump_file is not None:
-                    dump_file.write(data)
+            #     if dump_file is not None:
+            #         dump_file.write(data)
 
     def stop(self, signum=None, frame=None):
+        # print("Stopping VoskImp")
+
+        if self.input_stream is not None:
+            self.input_stream.close()
+
         self.audio_queue.put(None)
 
     # def __del__(self):
